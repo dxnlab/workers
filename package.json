@@ -1,0 +1,43 @@
+{
+  "name": "@dxnlab/workers",
+  "description": "Just wanted to run workers",
+  "license": "MIT",
+  "keywords": [
+    "worker",
+    "vite"
+  ],
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "main": "./dist/index.cjs",
+      "browser": "./dist/index.js"
+    },
+    "./vue": {
+      "main": "./dist/vue.cjs",
+      "browser": "./dist/vue.js"
+    },
+    "./react": {
+      "main": "./dist/react.cjs",
+      "browser": "./dist/react.js"
+    }
+  },
+  "author": "yg.song <yg.song@dxnlab.com>",
+  "scripts": {
+    "dev": "vite -c ./vite.preview.ts",
+    "build": "tsc && vite build",
+    "test": "wdio run ./wdio.conf.ts "
+  },
+  "peerDependencies": {
+    "react": "^19.2.8",
+    "vue": "^3.5.41",
+    "vite": "8.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "tsx": "^4.23.12",
+    "typescript": "~6.0.3",
+    "ws": "^8.21.3"
+  }
+}
