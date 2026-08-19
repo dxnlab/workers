@@ -7,7 +7,7 @@ worker add-on for to be used in vite
 ### (simple) Web Worker
 
 ```typescript
-import { registerWorker } from '@dxnlab/vite-workers'
+import { registerWorker } from '@dxnlab/workers'
 
 /** runner on simple worker */
 import simpleWorker from './worker?url'
@@ -36,7 +36,7 @@ worker.close();
 
 ```typescript
 
-import { registerSharedWorker } from '@dxnlab/vite-workers'
+import { registerSharedWorker } from '@dxnlab/workers'
 
 import sharedWorker from './shared?url'
 
@@ -49,7 +49,7 @@ const worker = registerSharedWorker(sharedWorker, {
     onMessageError: console.error,
     /* local on message */
     onMessage: (event:Event) => {
-
+        // TODO:
     }
 });
 
@@ -68,12 +68,26 @@ import { registerServiceWorker } from '@dxnlab/vite-workers'
 import serviceWorker from './serviced'
 
 const worker = await registerServiceWorker(serviceWorker, {
+    // goes to registration options
     scope: '/',
-    onStateChange: console.log,
-    onError: console.error,
+    // type?: 'classic' | 'module'
+    // updateViaCache?: 'all' | 'imports' | 'none'
+
+    /**
+     * common in ServiceWorkerContainer events
+     *  - onChange?: 'controllerChange'
+     *  - onMessage?: 'message'
+     *  - onMessageError? : 'messageerror'
+     **/
     onMessage: (event:Event)=>{
 
     }
+
+    /**
+     * to ServiceWorker instance events
+     *  - onError?: 'error'
+     *  - onStateChange?: 'statechange'
+     */
 });
 
 // onMessageError handler get handled at ServiceWorkerContainer
@@ -84,30 +98,52 @@ globalThis.navigator.serviceWorker.addEventHandler('messageerror', console.error
 ## vue templated use
 
 ```typescript
-import { createApp } from 'vue'
 /* vue plugin wrapper */
 import {
-    useWorker,
-    useSharedWorker,
-    useServiceWorker,
-} from '@dxnlab/vite-workers/vue'
-import simpleWorker from './workers/simple?url'
-import sharedWorker from './workers/shared?url'
-import serviceWorker from './workers/servied?url'
+    provideWorker,
+    provideSharedWorker,
+    provideServiceWorker,
+} from '@dxnlab/workers/vue'
 
-const app = createApp({});
-    .use(useWorker(simpleWorker, { 
-        // this.$simpleWorker.post({ message })
-        key: '$simpleWorker'
-    }))
-    .use(useSharedWorker(sharedWorker, {
-        key: '$sharedWorker',
-        type: 'module',
-    }))
-    .use(useServiceWorker(serviceWorker, {
-        key: '$serviceWorker',
-        scope: '/',
-    }));
+// providing Worker & Shared Worker are the same.
+provideWorker(
+    // keyname 
+    'worker', 
+    // worker script location/url
+    '/worker_location', 
+    // worker options
+    { },
+    // when app provided, it gets in app level provides.
+);
 
-app.mount('#app');
+// when an app level provide:
+provideSharedWorker(
+    'shared',
+    '/shared_worker_location',
+    { /* shared worker options */ },
+    vueApp
+);
+
+// ServiceWorker has a shallowReactive instance
+// that contains { container: ServiceWorkerContainer, worker: ServiceWorker }
+// specifically, .worker instance get updated when registration completed.
+provideServiceWorker(
+    'serviced',
+    '/service_worker_location',
+    { /* service worker options */ },
+    vueApp?
+);
+
+
+/** And it'd be used */
+const worker = inject('worker');
+worker.post('hello, worker');
+// better not to close in a component
+// worker.close();
+
+const sharedWorker = inject('shared');
+sharedWorker.post('greeting to the shared');
+
+const serviceWorker = inject('serviced');
+serviceWorker({ping: 'pong'});
 ```

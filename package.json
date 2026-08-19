@@ -3,10 +3,9 @@
   "description": "Just wanted to run workers",
   "license": "MIT",
   "keywords": [
-    "worker",
-    "vite"
+    "worker"
   ],
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "exports": {
     ".": {
