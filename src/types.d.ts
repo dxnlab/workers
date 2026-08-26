@@ -1,6 +1,17 @@
 type EventListener = (event:Event)=>void;
 type WorkerMessagePost = (message:any, option:Transferable[]|{transfer:Transferable[]})=>void;
 
+export type ForegroundWorkerBase = {
+  post: WorkerMessagePost,
+  close: ()=>void,
+}
+
+export type ForegroundWorkerDeterminantBase = {
+  onError?:EventListener,
+  onMessageError?:EventListener,
+  onMessage?:EventListener,
+};
+
 /** 
  * Web Worker 
  * @refer https://developer.mozilla.org/en-US/docs/Web/API/Worker/Worker

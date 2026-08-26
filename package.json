@@ -5,20 +5,24 @@
   "keywords": [
     "worker"
   ],
-  "version": "0.1.1",
+  "version": "0.1.9",
   "type": "module",
   "exports": {
     ".": {
       "main": "./dist/index.cjs",
       "browser": "./dist/index.js"
     },
-    "./vue": {
-      "main": "./dist/vue.cjs",
-      "browser": "./dist/vue.js"
+    "worker": {
+      "main": "./dist/worker.cjs",
+      "browser": "./dist/worker.js"
     },
-    "./react": {
-      "main": "./dist/react.cjs",
-      "browser": "./dist/react.js"
+    "shared": {
+      "main": "./dist/shared.cjs",
+      "browser": "./dist/shared.js"
+    },
+    "service": {
+      "main": "./dist/service.cjs",
+      "browser": "./dist/service.js"
     }
   },
   "author": "yg.song <yg.song@dxnlab.com>",

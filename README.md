@@ -7,6 +7,7 @@ worker add-on for to be used in vite
 ### (simple) Web Worker
 
 ```typescript
+/** foreground - browser page side */
 import { registerWorker } from '@dxnlab/workers'
 
 /** runner on simple worker */
@@ -30,6 +31,13 @@ worker.post({message: 'hello, world'});
 
 // complete the worker
 worker.close();
+```
+
+```typescript
+/** background - worker side */
+export default createWorker((messageEvent)=>{
+    /** do things upon the event */
+});
 ```
 
 ### Shared Worker

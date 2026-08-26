@@ -1,5 +1,5 @@
-import { urlize, extract } from "./common";
-import type { ServiceWorkerOptions, ServiceWorkerDXN } from "./types";
+import { urlize, extract } from "../common";
+import type { ForegroundServiceWorker, ServiceWorkerForegroundDeterminant } from "./types";
 
 export function getContainer(
   handlers?:{
@@ -22,7 +22,7 @@ export function getContainer(
   return container;
 }
 
-export default async function (location:string|URL, options?:ServiceWorkerOptions, baseContainer?:ServiceWorkerContainer):Promise<ServiceWorkerDXN> {
+export async function registerServiceWorker (location:string|URL, options?:ServiceWorkerForegroundDeterminant, baseContainer?:ServiceWorkerContainer):Promise<ForegroundServiceWorker> {
   const workerOption = extract(options ?? {}, {
     scope: undefined,
     type: undefined,
@@ -41,5 +41,5 @@ export default async function (location:string|URL, options?:ServiceWorkerOption
 
   return Object.defineProperties(worker, {
     post: {  value(message:any, options?:any) { return worker?.postMessage(message, options) } },
-  }) as ServiceWorkerDXN;
+  }) as ForegroundServiceWorker;
 }

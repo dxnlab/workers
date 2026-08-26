@@ -3,11 +3,12 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   build: {
     lib: {
-      entry: [
-        'src/index.ts',
-        'src/vue.ts',
-        'src/react.ts',
-      ],
+      entry: {
+        index: 'src/index.ts',
+        worker: 'src/worker/index.ts',
+        shared: 'src/shared/index.ts',
+        service: 'src/service/index.ts',
+      },
     },
     rolldownOptions: {
       external: ['vue','react']
