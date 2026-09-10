@@ -1,4 +1,6 @@
-// pong back the ping message
-export default addEventListener('message', ({data})=>{
+/** legacy exports */
+self.addEventListener('message', ({data})=>{
+  console.log(`[ECHO][Legacy] received:`, {data});
+  // post back
   self.postMessage(data);
 });

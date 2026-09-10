@@ -1,5 +1,5 @@
 import type { ForegroundWorkerBase, ForegroundWorkerDeterminantBase } from "@/types";
-import type { WorkerBackgroundDeterminant } from "@/worker/types";
+import type { WorkerBackgroundDeterminant } from "@/worker.old/types";
 
 export type ForegroundServiceWorker = ServiceWorker & ForegroundWorkerBase & {
 };

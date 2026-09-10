@@ -50,3 +50,11 @@ export function addHandlersOf(target:EventTarget, handlers:{[event:string]:Event
       return t;
     }, target);
 }
+
+export function on(eventName:string, method:any, context?:DecoratorContext) {
+  return function (this:any) {
+    const workerCls = this.constructor;
+    const workerInstance = workerCls.get;
+    workerInstance.addEventListener(eventName, method.bind(workerInstance));
+  }
+}

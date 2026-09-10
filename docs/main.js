@@ -1,33 +1,20 @@
-import { 
+import {
     registerWorker,
-    registerSharedWorker,
-    registerServiceWorker,
-    getServiceWorkerContainer,
-} from "../src";
+    WorkerEvent,
+} from '../src/worker';
+// import decorated from './workers/deco?url';
 
-const worker = registerWorker('/workers/echo.js', { 
-    type: 'module',
-    onError: console.error,
-    onMessageError: console.warn,
-    onMessage: (event)=>{
-        console.log('[WORKER] pong back', event);
+
+const legacy = registerWorker('/workers/echo.js', {
+    message: (event) => {
+        console.log('[ECHO][Legacy] browser got', event);
     }
 });
-const shared = registerSharedWorker('/workers/sharedEcho.js', {
-    onError: console.error,
-    onMessageError: console.warn,
-    onMessage: (event)=>{
-        console.log('[SHARED] pong back', event);
+legacy.postMessage({ ping: 'pong' });
+
+const deco = registerWorker('/workers/deco.js', {
+    message: (event) => {
+        console.log(`[ECHO][Deco] browser got`, event);
     }
 });
-
-const serviceContainer = getServiceWorkerContainer({
-    onMessage(ev) {
-        console.log('[SERVICE] Echo state changed', ev);
-    }
-});
-const serviced = await registerServiceWorker('/workers/serviceEcho.js');
-
-worker.post('ping');
-shared.post('pong');
-serviced.post({ping: 'pong'});
+deco.postMessage({ hello: 'world' });

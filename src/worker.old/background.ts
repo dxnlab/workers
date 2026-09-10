@@ -6,3 +6,4 @@ export function createWorker(self:any, definition:WorkerBackgroundDeterminant) {
   //
   return addHandlersOf(self, definition);
 }
+

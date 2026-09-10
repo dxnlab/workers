@@ -27,5 +27,5 @@
 
 
   },
-  "include": ["src", "tests/service.spec.ts", "tests/shared.spec.ts", "tests/worker.spec.ts"]
+  "include": ["src", "tests/service.spec.ts", "tests/shared.spec.ts", "tests/worker/worker.spec.ts"]
 }
