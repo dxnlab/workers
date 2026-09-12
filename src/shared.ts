@@ -3,6 +3,7 @@ import {
   forwardOnce, 
   listDecoratedOns, 
   locateUrl, 
+  registerEventHandler, 
   WorkerGlobalScope, 
   workerSelf,
 } from "./base";
@@ -100,8 +101,6 @@ export function sharedWorker(cls:any, context:DecoratorContext) {
     appendDefaultOnConnect(target, context);
     // binding listeners
     bindingMetaListeners(target, context);
-    // test
-    Object.defineProperty(cls, 'instance', { get() { return target } });
   });
 }
 
@@ -116,19 +115,7 @@ function bindingMetaListeners(target:any, context:DecoratorContext) {
 
 export const on = decoratorOn<SharedWorkerEvent>;
 
-export function register(location:string|URL, options?:string | WorkerOptions, suppressAutoStartPort:boolean=false) {
-  const worker = new SharedWorker(
-    locateUrl(location),
-    (options || { type: 'module' }),
-  );
-  Object.defineProperty(worker, 'post', {  value: forwardOnce(worker.port) });
-  if(!suppressAutoStartPort) {
-    worker.port.start();
-  }
-  return worker;
-}
-
-export class SharedWorkerBase extends WorkerGlobalScope {
+export class BaseScope extends WorkerGlobalScope {
 
   public readonly post:(message:any, transfers?:any, ...ports:(MessagePort|number)[])=>Array<Promise<unknown>>;
 
@@ -175,5 +162,46 @@ export class SharedWorkerBase extends WorkerGlobalScope {
    */
   protected get name() { return workerSelf.name }
 
-  protected close() { return workerSelf.close() }
+  protected close() { 
+    if(!this.discardPortSaveOnConnect) {
+      // close all ports before closing the worker
+      // @ts-ignore
+      this.ports.forEach((port)=>port.close());
+    }
+    return workerSelf.close() 
+  }
+}
+
+
+
+
+export type RegistrationOption = WorkerOptions & {
+  noAutoStart?: boolean,
+
+  onError?: EventListener,
+  // port events
+  onMessage?: EventListener,
+  onMessageError?: EventListener,
+}
+
+export function register(
+  location:string|URL, 
+  options?:string|RegistrationOption, 
+) {
+  const worker = new SharedWorker(
+    locateUrl(location),
+    (options || { type: 'module' }),
+  );
+  Object.defineProperty(worker, 'post', {  value: forwardOnce(worker.port) });
+  // register events: shared worker client itself
+  registerEventHandler(worker, 'onError', options);
+  // register events: shared worker port
+  registerEventHandler(worker.port, 'onMessage', options);
+  registerEventHandler(worker.port, 'onMessageError', options);
+
+  // @ts-ignore
+  if(!(options?.noAutoStart)) {
+    worker.port.start();
+  }
+  return worker;
 }

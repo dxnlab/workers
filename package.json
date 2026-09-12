@@ -20,6 +20,10 @@
     "./shared": {
       "main": "./dist/shared.cjs",
       "browser": "./dist/shared.js"
+    },
+    "./service": {
+      "main": "./dist/service.cjs",
+      "browser": "./dist/service.js"
     }
   },
   "author": "yg.song <yg.song@dxnlab.com>",

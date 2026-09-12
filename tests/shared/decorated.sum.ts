@@ -1,7 +1,8 @@
-import { sharedWorker, on, SharedWorkerBase } from '@dxnlab/workers/shared'
+// @ts-ignore
+import { sharedWorker, on, BaseScope } from '@dxnlab/workers/shared'
 
 @sharedWorker
-export class SumWorker extends SharedWorkerBase {
+export class SumWorker extends BaseScope {
   total(
     values:number[], 
     // @ts-ignore

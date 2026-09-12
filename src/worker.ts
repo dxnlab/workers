@@ -7,6 +7,7 @@ import {
   forwardOnce, 
   listDecoratedOns, 
   locateUrl, 
+  registerEventHandler, 
   WorkerGlobalScope, 
   workerSelf 
 } from "./base";
@@ -61,27 +62,13 @@ function bindingMetaListeners(target:any, context:DecoratorContext) {
  */
 export const on = decoratorOn<DedicatedWorkerEvent>;
 
-/**
- * @core register the worker at foreground. type "module" at default
- * @param location 
- * @param options 
- * @returns 
- */
-export function register(location:string|URL, options?:WorkerOptions) {
-  const worker = new Worker(
-    locateUrl(location), 
-    Object.assign({ type: 'module' }, options || {}));
-  Object.defineProperty(worker, 'post', { value: forwardOnce(worker) });
-  return worker;
-}
+export class BaseScope extends WorkerGlobalScope {
 
-export class DedicatedWorkerBase extends WorkerGlobalScope {
-
-  public readonly post:(message:any, transfers?:any)=>void
+  protected readonly post:(message:any, transfers?:any)=>Promise<unknown>
   
   constructor() {
     super();
-    this.post = forwardOnce(worker);
+    this.post = forwardOnce(workerSelf);
   }
 
   /**
@@ -96,7 +83,40 @@ export class DedicatedWorkerBase extends WorkerGlobalScope {
    */
   protected close() { return workerSelf.close() }
   // @ts-ignore @multivariated
-  protected postMessage() { return workerSelf.postMessage(...arguments) }
+  protected postMessage(message:any, transfers?:any) { return workerSelf.postMessage(message, transfers) }
   protected cancelAnimationFrame(id:number) { return workerSelf.cancelAnimationFrame(id) }
   protected requestAnimationFrame(callback:FrameRequestCallback) { return workerSelf.requestAnimationFrame(callback) }
+}
+
+
+
+export type RegistrationOption = WorkerOptions & {
+  onError?: EventListener,
+  onMessage?: EventListener,
+  onMessageError?: EventListener,
+};
+
+
+
+/**
+ * @core register the worker at foreground. type "module" at default
+ * @param location 
+ * @param options 
+ * @returns 
+ */
+export function register(location:string|URL, options?:RegistrationOption) {
+  const worker = new Worker(
+    locateUrl(location), 
+    Object.assign({ type: 'module' }, options || {}));
+
+  // register handlers
+  [
+    'onError',
+    'onMessage',
+    'onMessageError',
+  ].forEach((eventKey)=>{
+    registerEventHandler(worker, eventKey, options);
+  });
+  Object.defineProperty(worker, 'post', { value: forwardOnce(worker) });
+  return worker;
 }

@@ -72,6 +72,10 @@ export function listDecoratedOns<R>(context:DecoratorContext) {
   return (context.metadata!.listeners || []) as Array<EventReservation<R>>;
 }
 
+export function hasDecoratedOnsOf<R>(context:DecoratorContext, searches:string[]) {
+  return listDecoratedOns<R>(context).find(({event})=>searches.includes(event as string)) != null;
+}
+
 export function emit(source:EventTarget, eventName:string, options:object) {
   const ev = Object.assign(options ?? {}, new CustomEvent(eventName));
   source.dispatchEvent(ev);
@@ -132,4 +136,13 @@ export class WorkerGlobalScope extends EventTarget {
   protected setInterval(handler:TimerHandler, timeout?:number, ...args:any[]) { return workerSelf.setInterval(handler, timeout, ...args) }
   protected setTimeout(handler:TimerHandler, timeout?:number, ...args:any[]) { return workerSelf.setTimeout(handler, timeout, ...args) }
   protected structuredClone(value:any, options?:StructuredSerializeOptions) { return workerSelf.structuredClone(value, options) }
+}
+
+const registerHandlerPattern = /^on(?<event>.+)$/;
+export function registerEventHandler(target:EventTarget, key:string, options:any) {
+  const listener = options?.[key];
+  const event = registerHandlerPattern.exec(key)?.groups?.event ?? undefined;
+  if(listener && event) {
+    target.addEventListener(event.toLowerCase(), listener);
+  }
 }

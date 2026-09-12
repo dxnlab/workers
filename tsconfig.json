@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2023",
     "module": "esnext",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2024", "DOM"],
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
@@ -24,8 +24,6 @@
     "paths": {
       "@/*": ["./src/*"],
     }
-
-
   },
   "include": ["src", "tests/service.spec.ts", "tests/shared.spec.ts", "tests/worker/worker.spec.ts"]
 }

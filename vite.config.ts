@@ -7,9 +7,8 @@ export default defineConfig({
       entry: {
         index: 'src/index.ts',
         worker: 'src/worker.ts',
-        deco: 'src/deco.ts',
-        // shared: 'src/shared/index.ts',
-        // service: 'src/service/index.ts',
+        shared: 'src/shared.ts',
+        service: 'src/service.ts',
       },
     },
     rolldownOptions: {

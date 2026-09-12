@@ -1,7 +1,10 @@
 import { describe, test, expect } from 'vitest'
+// @ts-ignore
 import classicUrl from './cjs.sum?url'
+// @ts-ignore
 import modularUrl from './decorated.sum?url'
 
+// @ts-ignore
 import { register } from '@dxnlab/workers/shared'
 
 describe('shared worker test', async ()=>{
