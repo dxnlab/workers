@@ -37,27 +37,38 @@ export function bindingGlobalScopes(
   );
 }
 
-export function forwardOnce(sender:any=workerSelf, receiver?:any, timeout:number=1.0e3) {
+
+export function forwardOnce(sender:EventTarget=workerSelf, receiver?:EventTarget, timeout=1e3) {
   return async function(message:any, transfers?:any) {
     // use sender when receiver had not set.
     receiver = receiver || sender;
     // @ts-ignore @future
     const { promise, resolve, reject } = Promise.withResolvers();
+    const handlers = {
+      message: ({data}:any)=>resolve(data),
+      messageerror: reject,
+      error: reject,
+    };
+    let timer = setTimeout(reject, timeout);
     try {
-      Object.entries({
-        message: ({data}:any)=>resolve(data),
-        error: reject,
-        messageerror: reject,
-      }).forEach(([event, listener])=>receiver.addEventListener(event, listener, { once: true }));
-      setTimeout(()=>{
-        throw new Error('timeout')
-      }, timeout);
+      // setup one-time receiver event listeners
+      Object.entries(handlers).forEach(([etype, listener])=>{
+        receiver?.addEventListener(etype, listener, { once: true });
+      });
     
-      sender.postMessage!(message, transfers);
-      return promise;
+      // send the message
+      // @ts-ignore 
+      sender.postMessage(message, transfers);
     } catch(exception) {
       reject(exception);
     }
+    return promise.finally(()=>{
+      clearTimeout(timer);
+      // clear out one-time event listeners
+      Object.entries(handlers).forEach(([etype, listener])=>{
+        receiver?.removeEventListener(etype, listener)
+      });
+    });
   }
 }
 
@@ -145,4 +156,14 @@ export function registerEventHandler(target:EventTarget, key:string, options:any
   if(listener && event) {
     target.addEventListener(event.toLowerCase(), listener);
   }
+}
+
+export type BaseWorkerHandlers = {
+  onError: EventListener,
+  onLanguageChange: EventListener,
+  onOnline: EventListener,
+  onOffline: EventListener,
+  onRejectionHandled: EventListener,
+  onSecurityPolicyViolation: EventListener,
+  onUnhandledRejection: EventListener,
 }

@@ -9,8 +9,30 @@ import {
   locateUrl, 
   registerEventHandler, 
   WorkerGlobalScope, 
-  workerSelf 
+  workerSelf, 
+  type BaseWorkerHandlers
 } from "./base";
+
+
+/**
+ * classic undecorated generator
+ */
+
+export type ClassicWorkerOption = BaseWorkerHandlers & {
+    onMessage: EventListener,
+    onMessageError: EventListener,
+    onRTCTransform: EventListener,
+}
+export function createWorker(handlers:ClassicWorkerOption, scope?:EventTarget) {
+  // @ts-ignore
+  scope = scope || workerSelf;
+  Object.entries(handlers).forEach(([event, handler])=>{
+    const etype = /^on(?<etype>\w+)/i.exec(event)?.groups?.etype || event;
+    scope.addEventListener(etype.toLowerCase(), handler);
+  });
+  return scope;
+}
+
 
 /**
  * Events that can be applied to the Worker
@@ -43,6 +65,11 @@ export function worker(cls:any, context:DecoratorContext) {
 
     // add event listeners that has reserved by the "on" decorator
     bindingMetaListeners(target, context);
+
+    // testing accessor
+    if(import.meta.env.DEV) {
+      Object.defineProperty(cls, 'instance', {get(){ return target }});
+    }
   });
 }
 
@@ -62,13 +89,13 @@ function bindingMetaListeners(target:any, context:DecoratorContext) {
  */
 export const on = decoratorOn<DedicatedWorkerEvent>;
 
-export class BaseScope extends WorkerGlobalScope {
-
-  protected readonly post:(message:any, transfers?:any)=>Promise<unknown>
-  
+export class BaseScope extends WorkerGlobalScope {  
   constructor() {
     super();
-    this.post = forwardOnce(workerSelf);
+  }
+
+  protected postback(response:any, transfers?:any) {
+    workerSelf.postMessage(response, transfers);
   }
 
   /**

@@ -7,7 +7,9 @@ import { worker, on, BaseScope } from '@dxnlab/workers/worker'
 @worker
 export class EchoWorker extends BaseScope {
   @on('message')
-  async echo({data}:any){
-    this.postMessage(data);
+  echo(event:any){
+    // @ts-ignore @test
+    // this.postback(event.data);
+    this.postMessage(event.data);
   }
 }

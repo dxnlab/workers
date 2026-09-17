@@ -108,6 +108,7 @@ function onWorkerActivateDefaultBuilder(target:any, context:DecoratorContext) {
         target.serviceWorker?.addEventListener(event, listener.bind(target));
       });
   }
+  
 }
 
 function appendDefaultWorkerActivated(target:any, context:DecoratorContext) {
@@ -150,14 +151,13 @@ export function serviceWorker(cls:any, context:DecoratorContext) {
 }
 
 
-
+type ServiceWorkerClientMatchOption = {
+  includeUncontrolled: boolean; 
+  type: "window" | "worker" | "sharedworker" | "all";
+};
 export class BaseScope extends WorkerGlobalScope {
-
-  protected readonly post:(message:any, transfers?:any)=>Promise<unknown>
-
   constructor() {
     super();
-    this.post = forwardOnce(this.serviceWorker);
   }
 
   /* ServiceWorkerGlobalScope aliasing */
@@ -174,13 +174,23 @@ export class BaseScope extends WorkerGlobalScope {
     return workerSelf.skipWaiting();
   }
 
+  protected postback(event:any, message:any, transfers?:any) {
+    const { source } = event;
+    source.postMessage(message, transfers);
+  }
+
+  protected broadcast(message:any, transfers?:any, matchOptions?:ServiceWorkerClientMatchOption) {
+    this.clients.matchAll(matchOptions)
+      .then((clients:any)=>Array.from(clients)
+        .forEach((client:any)=>{
+          client.postMessage(message, transfers)
+        }));
+  }
+
 
   /* ServiceWorker instance aliasing */
   protected get scriptURL() { return this.serviceWorker.scriptURL }
   protected get state() { return this.serviceWorker.state }
-  protected postMessage(message:any, transfers?:any) { 
-    return this.serviceWorker.postMessage(message, transfers) ;
-  }
 }
 
 export type GetContainerOption = {
@@ -204,7 +214,9 @@ export type RegistrationOption = {
   onStateChange?: EventListener,
 }
 
-const resolver = (resolve:Function, reject:Function, { active, waiting, installing }:any)=>{
+const resolver = (resolve:Function, reject:Function, ev:any)=>{
+  const { active, waiting, installing } = ev
+
   try {
     if(active) { resolve(active) }
     else if((waiting || installing)) {
@@ -218,10 +230,21 @@ const resolver = (resolve:Function, reject:Function, { active, waiting, installi
   }
 }
 
-function getActiveServiceWorkerWhileRegistration(target:any):Promise<ServiceWorker> {
+async function getActiveServiceWorkerWhileRegistration(target:any):Promise<ServiceWorker> {
   const { promise, resolve, reject } = Promise.withResolvers();
-  resolver(resolve, reject, target);
-  return promise as Promise<ServiceWorker>;
+  const { active, waiting, installing } = await target;
+  try {
+    if(active) { resolve(active) }
+    else {
+      const next = (waiting || installing);
+      next.addEventListener('statechange', (ev:any)=>{
+        if(ev.active) { resolve(ev.active) }
+        else if(next.state === 'activated') { resolve(next); }
+      });
+    }
+  }
+  catch(ex) { reject(ex) }
+  return await promise as Promise<ServiceWorker>;
 }
 
 export function getContainer(options?:GetContainerOption):ServiceWorkerContainer { 
@@ -240,17 +263,13 @@ export function getContainer(options?:GetContainerOption):ServiceWorkerContainer
   return container;
 }
 
-export async function register(location:string|URL, options:RegistrationOption={}, container?:ServiceWorkerContainer) {
+export async function register(location:string|URL, options?:RegistrationOption, container?:ServiceWorkerContainer) {
   container = container || getContainer();
   const url = locateUrl(location);
-  const registration = await container.register(url, {
-    scope: options?.scope,
-    type: options?.type || 'module',
-    updateViaCache: options?.updateViaCache,
-  });
+  const registration = await container.register(url, options || {});
   const worker = await getActiveServiceWorkerWhileRegistration(registration);
-  console.log('worker registration', worker);
-  Object.defineProperty(worker, 'post', { value: forwardOnce(worker) });
+  
+  Object.defineProperty(worker, 'post', { value: forwardOnce(worker, container) });
 
   registerEventHandler(worker, 'error', options);
   registerEventHandler(worker, 'statechange', options);

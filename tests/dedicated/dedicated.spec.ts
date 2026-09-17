@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'vitest'
 
 import cjsUrl from './cjs.echo?url'
-import modUrl from './decorated.echo?url'
+import modUrl from './echo?url'
 
 import { register } from '@dxnlab/workers/worker'
 
@@ -26,22 +26,22 @@ describe('dedicated worker tests', async ()=> {
   await test('registration', async ()=>{
     const classic = register(cjsUrl, { type: 'classic' });
     const modular = register(modUrl);
+    // 
     [classic, modular].forEach((w)=>{
       expect(w).toBeInstanceOf(Worker);
       expect(w.addEventListener).toBeInstanceOf(Function);
       expect(w.postMessage).toBeInstanceOf(Function);
     });
 
-    // async post test:classic
-    expect(classic.post).toBeInstanceOf(Function);
-    const cmsg = Math.random();
-    await expect(await classic.post(cmsg)).toBe(cmsg);
-
     // async post test:modular
     expect(modular.post).toBeInstanceOf(Function);
     const mmsg = Math.random();
     await expect(await modular.post(mmsg)).toBe(mmsg);
 
+    // async post test:classic
+    expect(classic.post).toBeInstanceOf(Function);
+    const cmsg = Math.random();
+    await expect(await classic.post(cmsg)).toBe(cmsg);
   });
 
   // testing dedicated:classic worker run

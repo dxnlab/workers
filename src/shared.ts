@@ -117,8 +117,6 @@ export const on = decoratorOn<SharedWorkerEvent>;
 
 export class BaseScope extends WorkerGlobalScope {
 
-  public readonly post:(message:any, transfers?:any, ...ports:(MessagePort|number)[])=>Array<Promise<unknown>>;
-
   protected readonly suppressPortStartOnConnect:boolean;
   protected readonly discardPortSaveOnConnect:boolean;
   protected readonly suppressDefaultOnConnectListener:boolean;
@@ -146,15 +144,24 @@ export class BaseScope extends WorkerGlobalScope {
     this.discardPortSaveOnConnect = suppressDefaultOnConnectListener || discardPortSaveOnConnect;
     this.suppressOverrideRemoveOnClose = suppressDefaultOnConnectListener || suppressOverrideRemoveOnClose;
     this.suppressDefaultOnConnectListener = suppressDefaultOnConnectListener;
-    
-    // setup post method
-    this.post = !this.discardPortSaveOnConnect 
+  }
+
+  protected postback(messageEvent:MessageEvent, message:any, transfers?:any) {
+    Array.from(messageEvent.ports)
+      .forEach((port:MessagePort)=>port.postMessage(message, transfers));
+  }
+
+  protected broadcast(message:any, transfers?:any, ports?:Array<MessagePort|number>) {
+    if(this.discardPortSaveOnConnect) {
+      throw new TypeError('ports unavailable');
+    }
+    const hasPortFilter = ports && 0<ports.length;
     // @ts-ignore
-      ? ((message:any, transfers?:any, ...ports:(MessagePort|number)[]) => this.ports!
-        .filter((port:MessagePort, pindex:number)=>ports.length<=0 || ports.includes(port) || ports.includes(pindex))
-        // @ts-ignore
-        .map((port:MessagePort)=>port.post!(message, transfers))).bind(this)
-      : ()=>{ throw new TypeError('ports unavailable') };
+    (this.ports)
+      .filter((port:MessagePort, portIndex:number)=>!hasPortFilter 
+        || ports.includes(port) 
+        || ports.includes(portIndex))
+      .forEach((port:MessagePort) => port.postMessage(message, transfers));
   }
 
   /**

@@ -4,6 +4,11 @@ import babel from '@rolldown/plugin-babel'
 import tsconfigPath from 'vite-tsconfig-paths'
 
 export default defineConfig({
+  server: {
+    headers: {
+      'Service-Worker-Allowed': "/",
+    },
+  },
   plugins: [
     tsconfigPath({ 
       projects: ['./tsconfig.preview.json'],
