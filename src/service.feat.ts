@@ -1,5 +1,14 @@
-import { decoratorOn, listDecoratedOns, parseEventType, registerEventHandler, workerSelf } from "./base";
-import type { GetContainerOption, ServiceWorkerEvent, ServiceWorkerListener, ServiceWorkerOptions } from "./service.types";
+import { 
+  decoratorOn, 
+  listDecoratedOns, 
+  parseEventType, 
+  workerSelf 
+} from "./base";
+import type { 
+  ServiceWorkerEvent, 
+  ServiceWorkerListener, 
+  ServiceWorkerOptions 
+} from "./service.types";
 
 export const ServiceWorkerExperimentalEvents = [
   'backgroundfetchabort',
