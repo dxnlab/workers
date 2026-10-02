@@ -1,143 +1,103 @@
-import { decoratorOn, forwardOnce, hasDecoratedOnsOf, listDecoratedOns, locateUrl, registerEventHandler, WorkerGlobalScope, workerSelf } from './base';
-import type { DedicatedWorkerEvent } from './worker';
-
-
-export type ServiceWorkerEvent = DedicatedWorkerEvent
-  // ServiceWorkerGlobalScope events
-  | 'message'
-  | 'messageerror'
-  | 'activate'
-  | 'cookiechange'
-  | 'fetch'
-  | 'push'
-  | 'pushsubscriptionchange'
-  | 'sync'
-  | 'install'
-  | 'notificationclick'
-  | 'notificationclose'
-
-  // ServiceWorker events
-  | 'error'
-  | 'statechange'
-
-  // ServiceWorkerGlobalScope @experimental @future
-  | 'backgroundfetchabort'
-  | 'backgroundfetchclick'
-  | 'backgroundfetchfail'
-  | 'backgroundfetchsuccess'
-  | 'canmakepayment'
-  | 'contentdelete'
-  | 'paymentrequest'
-  | 'periodicsync'
-;
-
-
-export type ServiceWorkerContainerEvent = 'controllerchange'
-| 'message'
-| 'messageerror';
-
-const ServiceWorkerExperimentalEvents = [
-  'backgroundfetchabort',
-  'backgroundfetchclick',
-  'backgroundfetchfail',
-  'backgroundfetchsuccess',
-  'canmakepayment',
-  'contentdelete',
-  'paymentrequest',
-  'periodicsync'
-];
-const SerivceWorkerControllerEvents = [
-  'error',
-  'statechange',
-];
-
-
-export const on = decoratorOn<ServiceWorkerEvent>;
+import { 
+  decoratorOn, 
+  forwardOnce, 
+  hasDecoratedOnsOf, 
+  locateUrl, 
+  registerEventHandler, 
+  WorkerGlobalScope, 
+  workerSelf 
+} from './base';
+import { 
+  appendDefaultWorkerActivated, 
+  bindingMetaListeners, 
+  getActiveServiceWorkerWhileRegistration, 
+  partitionEventHandlers, 
+  registerControllerDefaultHandler, 
+  SerivceWorkerControllerEvents 
+} from './service.feat';
+import type { GetContainerOption, RegistrationOption, ServiceWorkerClientMatchOption, ServiceWorkerEvent, ServiceWorkerOptions } from './service.types';
 
 /**
- * @refer https://developer.mozilla.org/en-US/docs/Web/API/Clients
+ * Service Worker
+ * @refer https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker
  */
-export type Clients = {
-  openWindow:(url:string)=>Promise<WindowClient>
-  claim:()=>Promise<undefined>,
-  get:(id:string)=>Promise<Client>,
-  matchAll:(options?:{
-    includeUncontrolled:boolean, 
-    type:'window'|'worker'|'sharedworker'|'all'
-  }) => Promise<Client>
-}
+
 
 /**
- * @refer https://developer.mozilla.org/en-US/docs/Web/API/Client
+ * get service worker container
+ * @param options 
+ * @returns 
  */
-export type Client = {
-  readonly frameType: 'auxiliary' | 'top-level' | 'nested' | 'none',
-  readonly id: string,
-  readonly type: 'window' | 'worker' | 'sharedworker',
-  readonly url: string,
-};
-
-/**
- * @refer https://developer.mozilla.org/en-US/docs/Web/API/WindowClient
- */
-export type WindowClient = Client & {
-  readonly focused: boolean,
-  readonly visiblityState: 'hidden' | 'visible',
-
-  focus: ()=>Promise<WindowClient>,
-  navigate: (url:string)=>Promise<WindowClient|null>,
-}
-
-export type ServiceWorkerStatus = 'parsed' | 'installing' | 'installed' | 'activating' | 'activated' | 'redundant';
-
-export type Controller = EventTarget & {
-  readonly scriptURL:string,
-  readonly state: ServiceWorkerStatus,
-  postMessage: (message:any, transfers:any)=>void, // throws SyntaxError
-};
-
-function onWorkerActivateDefaultBuilder(target:any, context:DecoratorContext) {
-  // @ts-ignore
-  return (ev)=>{
-    listDecoratedOns<ServiceWorkerEvent>(context)
-      .filter(({event})=>SerivceWorkerControllerEvents.includes(event))
-      .forEach(({event, listener})=>{
-        if(ServiceWorkerExperimentalEvents.includes(event)) {
-          console.warn(`ServiceWorker:${event} - experimental`);
-        }
-        target.serviceWorker?.addEventListener(event, listener.bind(target));
-      });
+export function getContainer(options?:GetContainerOption):ServiceWorkerContainer { 
+  const container = globalThis?.navigator?.serviceWorker;
+  if(container == null) {
+    // TODO: Exception
+    throw new TypeError('ServiceWorker not provided');
   }
+  registerEventHandler(container, 'controllerchange', options);
+  registerEventHandler(container, 'message', options);
+  registerEventHandler(container, 'messageerror', options);
+
+  if(!(options?.noAutoStart)) {
+    container.startMessages();
+  }
+  return container;
+}
+
+
+/**
+ * Background (Worker procedure side)
+ */
+
+// [classic] 
+// export createServiceWorker({ onMessage: (ev)=>void })
+
+
+/**
+ * @core classic mode shared worker declaration function
+ * @param handlers { eventType: listnerFunction } object
+ * @param scope background basescope
+ * @returns SharedWorkerGlobalScope
+ */
+export function createServiceWorker(handlers:ServiceWorkerOptions, scope?:EventTarget) {
+  const registrationEvent = 'activate';
+
+  const target = scope || workerSelf;
+  const { controllers, workers } = partitionEventHandlers(handlers);
   
-}
-
-function appendDefaultWorkerActivated(target:any, context:DecoratorContext) {
-  // append default binding
-  if(!context.metadata!.onWorkerActiveDefault) {
-    context.metadata!.onWorkerActiveDefault 
-      = onWorkerActivateDefaultBuilder(target, context);
-  } {
-    // clear duplicate if exists
-    workerSelf.removeEventListener(
-      'activate',
-      context.metadata!.onWorkerActiveDefault as EventListener);
-    // adding activate handler
-    on('activate')
-    (context.metadata!.onWorkerActiveDefault as EventListener, context);
+  // when controller events are presented
+  const controllerDefault = registerControllerDefaultHandler(target, controllers);
+  if(controllerDefault) {
+    workers.push(registrationEvent, registerControllerDefaultHandler);
   }
+  // append worker event handlers
+  return workers.reduce((t, [etype, handler])=>{
+    t.addEventListener(etype, handler);
+    return t;
+  }, target);
 }
 
-function bindingMetaListeners(target:any, context:DecoratorContext) {
-  listDecoratedOns<ServiceWorkerEvent>(context)
-    .filter(({ event })=>!SerivceWorkerControllerEvents.includes(event))
-    .forEach(({ event, listener })=>{
-      if(ServiceWorkerExperimentalEvents.includes(event)) {
-        console.warn(`ServiceWorkerGlobalScope:${event} - experimental`);
-      }
-      workerSelf.addEventListener(event, listener.bind(target));
-    });
-}
 
+
+// [modular] 
+// @sharedWorker
+// export class extends BaseScope { 
+//    @on('message')
+//    onMessageHandle(event) {
+//        const data = event.data!;
+//        /* things with message data */
+//    }
+// }
+
+
+/**
+ * @core decorator for a modular SharedWorker background
+ * @param cls the target class
+ * @param context Decorator context
+ * 
+ * @caution ! MUST be created by non-parameterized `new <class>`
+ *   private constructor, and/or non-optional parameters are not available.
+ */
 export function serviceWorker(cls:any, context:DecoratorContext) {
   context.addInitializer(()=>{
     const target = new cls;
@@ -151,14 +111,26 @@ export function serviceWorker(cls:any, context:DecoratorContext) {
 }
 
 
-type ServiceWorkerClientMatchOption = {
-  includeUncontrolled: boolean; 
-  type: "window" | "worker" | "sharedworker" | "all";
-};
+
+/**
+ * @core decorator for module worker event handlers.
+ * @param event:ServiceWorkerEvent that'd be processed by the worker
+ * @returns 
+ */
+export const on = decoratorOn<ServiceWorkerEvent>;
+
+
+/**
+ * @core The base class for an SharedWorker
+ *   with aliasing basescope (`window.self`) properties/methods,
+ *   adds 
+ *     - postback:(message, transfers?)=>void
+ *     - broadcast:(message, transfers?)=>void
+ *   unlike dedicated worker,
+ *     x postMessage; the client should be specified
+ */
 export class BaseScope extends WorkerGlobalScope {
-  constructor() {
-    super();
-  }
+  constructor() { super(); }
 
   /* ServiceWorkerGlobalScope aliasing */
   // @ts-ignore
@@ -193,76 +165,21 @@ export class BaseScope extends WorkerGlobalScope {
   protected get state() { return this.serviceWorker.state }
 }
 
-export type GetContainerOption = {
-  // startMessage option
-  noAutoStart?:boolean,
 
-  // worker container events
-  onControllerChange?: EventListener,
-  onMessage?: EventListener,
-  onMessageError?: EventListener,
-}
 
-export type RegistrationOption = {
-  // options
-  scope?:string,
-  type?:'classic'|'module',
-  updateViaCache?: 'all'|'imports'|'none',
 
-  // worker client events
-  onError?: EventListener,
-  onStateChange?: EventListener,
-}
 
-const resolver = (resolve:Function, reject:Function, ev:any)=>{
-  const { active, waiting, installing } = ev
+/**
+ * Foreground (Browser side)
+ */
 
-  try {
-    if(active) { resolve(active) }
-    else if((waiting || installing)) {
-      (waiting || installing).addEventListener('statechange',
-        (ev:any)=>resolver(resolve, reject, ev),
-        { once: true }
-      );
-    }
-  } catch(ex) {
-    reject(ex);
-  }
-}
 
-async function getActiveServiceWorkerWhileRegistration(target:any):Promise<ServiceWorker> {
-  const { promise, resolve, reject } = Promise.withResolvers();
-  const { active, waiting, installing } = await target;
-  try {
-    if(active) { resolve(active) }
-    else {
-      const next = (waiting || installing);
-      next.addEventListener('statechange', (ev:any)=>{
-        if(ev.active) { resolve(ev.active) }
-        else if(next.state === 'activated') { resolve(next); }
-      });
-    }
-  }
-  catch(ex) { reject(ex) }
-  return await promise as Promise<ServiceWorker>;
-}
-
-export function getContainer(options?:GetContainerOption):ServiceWorkerContainer { 
-  const container = globalThis?.navigator?.serviceWorker;
-  if(container == null) {
-    // TODO: Exception
-    throw new TypeError('ServiceWorker not provided');
-  }
-  registerEventHandler(container, 'controllerchange', options);
-  registerEventHandler(container, 'message', options);
-  registerEventHandler(container, 'messageerror', options);
-
-  if(!(options?.noAutoStart)) {
-    container.startMessages();
-  }
-  return container;
-}
-
+/**
+ * @core register the worker at foreground. type "module" at default
+ * @param location 
+ * @param options 
+ * @returns 
+ */
 export async function register(location:string|URL, options?:RegistrationOption, container?:ServiceWorkerContainer) {
   container = container || getContainer();
   const url = locateUrl(location);

@@ -1,4 +1,4 @@
-import { worker, on, BaseScope } from '@dxnlab/workers/worker'
+import { worker, on, BaseScope } from '@dxnlab/workers/dedicated'
 
 @worker
 export class TestDedicatedWorker extends BaseScope {

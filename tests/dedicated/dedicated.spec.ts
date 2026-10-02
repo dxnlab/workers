@@ -3,7 +3,7 @@ import { describe, test, expect } from 'vitest'
 import cjsUrl from './cjs.echo?url'
 import modUrl from './echo?url'
 
-import { register } from '@dxnlab/workers/worker'
+import { register } from '@dxnlab/workers/dedicated'
 
 const registerRaw = (url:string, options?:WorkerOptions)=>new Worker(
   new URL(url, import.meta.url), 

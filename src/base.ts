@@ -1,9 +1,6 @@
-export const workerSelf = globalThis.self;
+import type { EventReservation } from "./types";
 
-export type EventReservation<Events> = {
-  event:Events,
-  listener:EventListener,
-}
+export const workerSelf = globalThis.self;
 
 export function convertPropertyDefinitions(bindings:{[name:string]:unknown}) {
   return Object.fromEntries(Object.entries(bindings).map(([name, value])=>[
@@ -15,6 +12,17 @@ export function convertPropertyDefinitions(bindings:{[name:string]:unknown}) {
         : function() { workerSelf[name](...arguments) }
     }
   ]));
+}
+
+/**
+ * parse on<EventName> to eventname
+ * @param event 
+ * @returns event name, or name itself if not provided
+ */
+export function parseEventType(event:string):string {
+  return (/^on(?<etype>\w+)/i.exec(event)
+    ?.groups?.etype || event)
+    .toLowerCase();
 }
 
 export function locateUrl(location:string|URL) {
@@ -92,16 +100,7 @@ export function emit(source:EventTarget, eventName:string, options:object) {
   source.dispatchEvent(ev);
 }
 
-/**
- * @ts-ignore
- */
 export class WorkerGlobalScope extends EventTarget {
-
-  protected dispatchBubble(event:Event, originSource:EventTarget) {
-    const ev = Object.assign(event, {originSource});
-    this.dispatchEvent(ev);
-  }
-
   /**
    * properties 
    * @refer https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope#instance_properties
@@ -156,14 +155,4 @@ export function registerEventHandler(target:EventTarget, key:string, options:any
   if(listener && event) {
     target.addEventListener(event.toLowerCase(), listener);
   }
-}
-
-export type BaseWorkerHandlers = {
-  onError: EventListener,
-  onLanguageChange: EventListener,
-  onOnline: EventListener,
-  onOffline: EventListener,
-  onRejectionHandled: EventListener,
-  onSecurityPolicyViolation: EventListener,
-  onUnhandledRejection: EventListener,
 }

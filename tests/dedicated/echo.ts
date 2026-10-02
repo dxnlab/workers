@@ -2,7 +2,7 @@
  * Example echo worker that pong back any given message
  */
 
-import { worker, on, BaseScope } from '@dxnlab/workers/worker'
+import { worker, on, BaseScope } from '@dxnlab/workers/dedicated'
 
 @worker
 export class EchoWorker extends BaseScope {

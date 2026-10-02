@@ -1,6 +1,6 @@
 import { describe, test, expect, vi } from 'vitest'
 // @ts-ignore @preview
-import { createWorker, worker, on, BaseScope } from '@dxnlab/workers/worker'
+import { createWorker, worker, on, BaseScope } from '@dxnlab/workers/dedicated'
 import { buildMocks, testEventHandlers } from '../base';
 
 // explicit spot self

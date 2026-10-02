@@ -5,7 +5,7 @@
 import { describe, test, expect, vi } from "vitest";
 import { emit } from '../base'
 // @ts-ignore @preview
-import { register } from '@dxnlab/workers/worker'
+import { register } from '@dxnlab/workers/dedicated'
 // @ts-ignore @preview
 import moduleUrl from './echo?url'
 

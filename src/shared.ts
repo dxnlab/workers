@@ -1,97 +1,68 @@
 import { 
   decoratorOn, 
   forwardOnce, 
-  listDecoratedOns, 
   locateUrl, 
   registerEventHandler, 
   WorkerGlobalScope, 
   workerSelf,
 } from "./base";
-import type { DedicatedWorkerEvent } from "./worker";
+import { appendDefaultOnConnect, appendPortEventsOnConnect, assignPortsProperty, bindingMetaListeners, partitionEventHandlers, SharedWorkerPortEvent } from "./shared.feat";
+import type { RegistrationOption, SharedWorkerEvent, SharedWorkerOptions } from "./shared.types";
+import type { HandlerEntry } from "./types";
 
-export type SharedWorkerEvent = DedicatedWorkerEvent
-  | 'connect';
-
-const SharedWorkerPortEvent = ['message', 'messageerror'] as Array<SharedWorkerEvent>;
-
-function _listPorts(context:DecoratorContext):MessagePort[] {
-  return (context.metadata!.ports || []) as Array<MessagePort>;
-}
-
-function _savePort(context:DecoratorContext, port:MessagePort) {
-  context.metadata!.ports = _listPorts(context).concat([port]);
-}
-
-function _removePort(context:DecoratorContext, port:MessagePort) {
-  context.metadata!.ports = _listPorts(context).filter((p)=>p!=port);
-}
-
-function assignPortsProperty(target:any, context:DecoratorContext) {
-  // when "do not use ports" set, stop.
-  if(target?.discardPortSaveOnConnect) {
-    return;
-  }
+/**
+ * Shared Worker
+ * @refer https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker
+ */
 
 
-  // saving port to later broadcast
-  Object.defineProperties(target, {
-    // using "ports" to save
-    ports: {
-      get: ()=>_listPorts(context),
-      set: (port:MessagePort) => _savePort(context, port),
-    },
-  });
-}
+/**
+ * Background (Worker procedure side)
+ */
 
-function appendDefaultOnConnect(target:any, context:DecoratorContext) {
-  // when option suppressed, stop here.
-  if(target?.suppressDefaultOnConnectListener) {
-    return;
-  }
+// [classic] 
+// export createSharedWorker({ onMessage: (ev)=>void })
 
-  // port event listeners to be set on the default connect
-  const portEvents = listDecoratedOns<SharedWorkerEvent>(context)
-        .filter(({ event })=>SharedWorkerPortEvent.includes(event));
+/**
+ * @core classic mode shared worker declaration function
+ * @param handlers { eventType: listnerFunction } object
+ * @param scope background basescope
+ * @returns SharedWorkerGlobalScope
+ */
+export function createSharedWorker(handlers:SharedWorkerOptions, scope?:EventTarget) {
+    // filter port/worker events
+  const { ports, workers } = partitionEventHandlers(handlers);
+  
+  // when port events are presented,
+  // add default handler on connection
+  appendPortEventsOnConnect(ports, workers);
 
-  // default on connect listener
-  on('connect')
-  (function defaultOnConnect(event:any) {
-    // find the port out of event
-    const port = Array.from(event.ports).shift() as MessagePort;
-    // const port = event.ports[0];
-    // save port for broadcast
-    if(!target?.discardPortSaveOnConnect) {
-      target.ports = port;
-    }
-
-    // add 'post' method
-    Object.defineProperty(port, 'post', { value: forwardOnce(port) });
-
-    // append default port events
-    portEvents!.forEach(({event, listener}:any)=>{
-      port.addEventListener(event, (event)=>{
-        // force update the "port" data.
-        event.port = event.port || port;
-        listener.apply(target, [event]);
-      });
-    });
-
-    // remove the port from the list when closing
-    if(!target?.suppressOverrideRemoveOnClose) {
-      const baseClose = port.close;
-      port.close = ()=>{
-        baseClose();
-        _removePort(context, port);
-      }
-    }
-    // start the port
-    if(!target?.suppressPortStartOnConnect) {
-      port.start();
-    }
-  }, context);
+  // setup target scope & return
+  return workers.reduce((target:any, entry:HandlerEntry)=>{
+    const [etype, handler] = entry;
+    target.addEventListener(etype, handler);
+  }, scope || workerSelf);
 }
 
 
+// [modular] 
+// @sharedWorker
+// export class extends BaseScope { 
+//    @on('message')
+//    onMessageHandle(event) {
+//        const data = event.data!;
+//        /* things with message data */
+//    }
+// }
+
+/**
+ * @core decorator for a modular SharedWorker background
+ * @param cls the target class
+ * @param context Decorator context
+ * 
+ * @caution ! MUST be created by non-parameterized `new <class>`
+ *   private constructor, and/or non-optional parameters are not available.
+ */
 export function sharedWorker(cls:any, context:DecoratorContext) {
   context.addInitializer(()=>{
     const target = new cls;
@@ -104,17 +75,24 @@ export function sharedWorker(cls:any, context:DecoratorContext) {
   });
 }
 
-function bindingMetaListeners(target:any, context:DecoratorContext) {
-  listDecoratedOns<SharedWorkerEvent>(context)
-    // port events would be established on connect
-    .filter(({ event })=>!SharedWorkerPortEvent.includes(event))
-    .forEach(({ event, listener })=>{
-      workerSelf.addEventListener(event, listener.bind(target));
-    });
-}
-
+/**
+ * @core decorator for module worker event handlers.
+ * @param event:SharedWorkerEvent that'd be processed by the worker
+ * @returns 
+ */
 export const on = decoratorOn<SharedWorkerEvent>;
 
+
+
+/**
+ * @core The base class for an SharedWorker
+ *   with aliasing basescope (`window.self`) properties/methods,
+ *   adds 
+ *     - postback:(message, transfers?)=>void
+ *     - broadcast:(message, transfers?)=>void
+ *   unlike dedicated worker,
+ *     x postMessage; the port should be specified
+ */
 export class BaseScope extends WorkerGlobalScope {
 
   protected readonly suppressPortStartOnConnect:boolean;
@@ -182,15 +160,19 @@ export class BaseScope extends WorkerGlobalScope {
 
 
 
-export type RegistrationOption = WorkerOptions & {
-  noAutoStart?: boolean,
 
-  onError?: EventListener,
-  // port events
-  onMessage?: EventListener,
-  onMessageError?: EventListener,
-}
 
+
+/**
+ * Foreground (Browser side)
+ */
+
+/**
+ * @core register the SharedWorker at foreground. type "module" at default
+ * @param location 
+ * @param options 
+ * @returns 
+ */
 export function register(
   location:string|URL, 
   options?:string|RegistrationOption, 
@@ -199,6 +181,8 @@ export function register(
     locateUrl(location),
     (options || { type: 'module' }),
   );
+
+  // append async post method
   Object.defineProperty(worker, 'post', {  value: forwardOnce(worker.port) });
   // register events: shared worker client itself
   registerEventHandler(worker, 'onError', options);

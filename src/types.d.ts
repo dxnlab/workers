@@ -1,16 +1,41 @@
-type EventListener = (event:Event)=>void;
+/**
+ * BaseTypes
+ */
+
+/**
+ * @core decorated class event listener reservation
+ *   Which will recorded into context.metadata,
+ *   Later loaded at class initializer to be registered.
+ */
+export type EventReservation<Events> = {
+  event:Events,
+  listener:EventListener,
+}
+
+
+/**
+ * @core common EventHandler map 
+ *   for classic worker declaration
+ */
+export type BaseWorkerHandlers = {
+  onError: EventListener,
+  onLanguageChange: EventListener,
+  onOnline: EventListener,
+  onOffline: EventListener,
+  onRejectionHandled: EventListener,
+  onSecurityPolicyViolation: EventListener,
+  onUnhandledRejection: EventListener,
+}
+
+/**
+ * @core common postMessage function declaration
+ */
 type WorkerMessagePost = (message:any, option:Transferable[]|{transfer:Transferable[]})=>void;
 
 export type ForegroundWorkerBase = {
   post: WorkerMessagePost,
   close: ()=>void,
 }
-
-export type ForegroundWorkerDeterminantBase = {
-  onError?:EventListener,
-  onMessageError?:EventListener,
-  onMessage?:EventListener,
-};
 
 /** 
  * Web Worker 
@@ -26,12 +51,6 @@ export type WorkerOptions ={
   onMessageError?:EventListener,
   onMessage?:EventListener,
 };
-export type WorkerDXN = Worker & {
-  // postMessage alias
-  post: WorkerMessagePost,
-  // terminate alias
-  close: ()=>void
-}
 
 /** 
  * Shared Worker 
@@ -52,21 +71,7 @@ export type SharedWorkerDXN = SharedWorker & {
  * Service Worker 
  * @refer https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
  **/
-export type ServiceWorkerOptions = {
-  // register options
-  scope?: string,
-  type?: 'classic'|'module',
-  updateViaCache: 'all'|'imports'|'none',
 
-  // container event listeners
-  onChange?:EventListener,
-  onMessage?: EventListener,
-  onMessageError?: EventListener,
-
-  // worker event listeners
-  onError?: EventListener,
-  onStateChange?: EventListener,
-};
 
 export type ServiceMessageTransferables = Transferable[]|{transfer:Transferable[]};
 type ServiceMessagePost = (message:any, transfers:ServiceMessageTransferables)=>any;
@@ -80,3 +85,6 @@ export enum WorkerTypes {
   Shared = 'sharedWorker',
   Service = 'serviceWorker',
 };
+
+export type HandlerEntry = [string, EventListener];
+export type HandlerEntries = Array<HandlerEntry>;
