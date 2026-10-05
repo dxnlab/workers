@@ -1,10 +1,4 @@
 export {
-  // background class decorator
-  worker,
-  // background method handling registration
-  on as onWorker,
-  // background class alias base
-  BaseScope as WorkerBaseScope,
   // background classic determination
   createWorker,
   // foreground
@@ -12,12 +6,6 @@ export {
 } from './dedicated';
 
 export {
-  // background class decorator
-  sharedWorker,
-  // background method handling registration
-  on as onSharedWorker,
-  // background class alias base
-  BaseScope as ShareWorkerBaseScope,
   // background classic determination
   createSharedWorker,
   // foreground
@@ -25,15 +13,10 @@ export {
 } from './shared'
 
 export {
-  // background class decorator
-  serviceWorker,
-  // background method handling registration
-  on as onServiceWorker,
-  // background class alias base
-  BaseScope as ServiceWorkerBaseScope,
+  //
+  getContainer,
   // background classic determination
   createServiceWorker,
   // foreground
-  register as registerWorker,
+  register as registerServiceWorker,
 } from './service';
-

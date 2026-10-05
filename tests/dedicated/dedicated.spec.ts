@@ -1,8 +1,11 @@
 import { describe, test, expect } from 'vitest'
 
+// @ts-ignore
 import cjsUrl from './cjs.echo?url'
+// @ts-ignore
 import modUrl from './echo?url'
 
+// @ts-ignore
 import { register } from '@dxnlab/workers/dedicated'
 
 const registerRaw = (url:string, options?:WorkerOptions)=>new Worker(

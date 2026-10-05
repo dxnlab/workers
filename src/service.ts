@@ -15,7 +15,13 @@ import {
   registerControllerDefaultHandler, 
   SerivceWorkerControllerEvents 
 } from './service.feat';
-import type { GetContainerOption, RegistrationOption, ServiceWorkerClientMatchOption, ServiceWorkerEvent, ServiceWorkerOptions } from './service.types';
+import type { 
+  GetContainerOption, 
+  RegistrationOption, 
+  ServiceWorkerClientMatchOption, 
+  ServiceWorkerEvent, 
+  ServiceWorkerOptions 
+} from './service.types';
 
 /**
  * Service Worker
@@ -24,7 +30,7 @@ import type { GetContainerOption, RegistrationOption, ServiceWorkerClientMatchOp
 
 
 /**
- * get service worker container
+ * get service worker container, either fore&back
  * @param options 
  * @returns 
  */
@@ -57,9 +63,9 @@ export function getContainer(options?:GetContainerOption):ServiceWorkerContainer
  * @core classic mode shared worker declaration function
  * @param handlers { eventType: listnerFunction } object
  * @param scope background basescope
- * @returns SharedWorkerGlobalScope
+ * @returns Promise<ServiceWorker>
  */
-export function createServiceWorker(handlers:ServiceWorkerOptions, scope?:EventTarget) {
+export async function createServiceWorker(handlers:ServiceWorkerOptions, scope?:EventTarget) {
   const registrationEvent = 'activate';
 
   const target = scope || workerSelf;
@@ -80,7 +86,7 @@ export function createServiceWorker(handlers:ServiceWorkerOptions, scope?:EventT
 
 
 // [modular] 
-// @sharedWorker
+// @serviceWorker
 // export class extends BaseScope { 
 //    @on('message')
 //    onMessageHandle(event) {
@@ -105,7 +111,7 @@ export function serviceWorker(cls:any, context:DecoratorContext) {
     if(hasDecoratedOnsOf<ServiceWorkerEvent>(context, SerivceWorkerControllerEvents)) {
       appendDefaultWorkerActivated(target, context);
     }
-    // binding listners
+    // binding listeners
     bindingMetaListeners(target, context);
   });
 }
@@ -121,15 +127,18 @@ export const on = decoratorOn<ServiceWorkerEvent>;
 
 
 /**
- * @core The base class for an SharedWorker
+ * @core The base class for an ServiceWorker
  *   with aliasing basescope (`window.self`) properties/methods,
  *   adds 
- *     - postback:(message, transfers?)=>void
- *     - broadcast:(message, transfers?)=>void
+ *     - get controller:ServiceWorker === get serviceWorker
+ *     - get container:ServiceWorkerContainer === get self.navigator.serviceWorker
+ *     - postback:(event, message, transfers?)=>void
+ *     - broadcast:(message, transfers?, matchOptions?)=>void
  *   unlike dedicated worker,
  *     x postMessage; the client should be specified
  */
 export class BaseScope extends WorkerGlobalScope {
+
   constructor() { super(); }
 
   /* ServiceWorkerGlobalScope aliasing */
@@ -141,6 +150,17 @@ export class BaseScope extends WorkerGlobalScope {
   // @ts-ignore
   protected get serviceWorker():ServiceWorker { return workerSelf.serviceWorker }
 
+  // service worker controller aliasing === this.serviceWorker
+  protected get controller():ServiceWorker { return this.serviceWorker }
+  /**
+   * Firefox / Safari (+iOS) supports only as of 2026.Oct.02.
+   * @refer https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer#browser_compatibility
+   **/ 
+  // // global scoped navigator aliasing === self.navigator
+  // protected get navigator(){ return workerSelf.navigator }
+  // // global scoped service worker container aliasing === self.navigator.serviceWorker
+  // protected get container(){ return this.navigator.serviceWorker }
+
   protected skipWaiting():Promise<undefined> { 
     // @ts-ignore
     return workerSelf.skipWaiting();
@@ -151,12 +171,18 @@ export class BaseScope extends WorkerGlobalScope {
     source.postMessage(message, transfers);
   }
 
-  protected broadcast(message:any, transfers?:any, matchOptions?:ServiceWorkerClientMatchOption) {
-    this.clients.matchAll(matchOptions)
-      .then((clients:any)=>Array.from(clients)
-        .forEach((client:any)=>{
-          client.postMessage(message, transfers)
-        }));
+  protected async broadcast(message:any, transfers?:any, matchOptions?:ServiceWorkerClientMatchOption) {
+    const clients = matchOptions 
+      ? await this.clients.matchAll(matchOptions)
+      : this.clients;
+    Array.from(clients).forEach((client:any)=>{
+      client.postMessage(message, transfers);
+    });
+  }
+
+  protected postMessage(message:any, transfers?:any) {
+    // @ts-ignore
+    return this.serviceWorker.postMessage(message, transfers);
   }
 
 

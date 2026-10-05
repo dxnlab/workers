@@ -112,6 +112,20 @@ export type ServiceWorkerEvent = DedicatedWorkerEvent
   | 'periodicsync'
 ;
 
+declare class BaseScope extends WorkerGlobalScope  {
+  declare get clients():Clients;
+  declare get cookieStore():CookieStore;
+  declare get registration():ServiceWorkerRegistration;
+  declare get serviceWorker():ServiceWorker;
+  declare get controller():ServiceWorker;
+  
+  declare skipWaiting():Promise<undefined>;
+  declare postback(event:any, message:any, transfers?:any):void;
+  declare broadcast(message:any, transfers?:any, matchOptions?:ServiceWorkerClientMatchOption):Promise<void>;
+  
+  declare get scriptURL():string;
+  declare get state():ServiceWorkerStatus;
+};
 
 
 export type ServiceWorkerContainerEvent = 'controllerchange'

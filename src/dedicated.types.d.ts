@@ -37,7 +37,7 @@ export type DedicatedWorkerEvent = 'message'
   | 'rejectionhandled'
   | 'securitypolicyviolation'
   | 'unhandledrejection'
-  | 'rtctransform'
+  | 'rtctransform';
 
 // [Background][module][base] BaseClass for ease
 declare class BaseScope extends WorkerGlobalScope {
@@ -60,7 +60,7 @@ declare class BaseScope extends WorkerGlobalScope {
  * [Foreground] registered worker instance type
  */
 export interface RegisteredWorkerGlobalScope extends Worker {
-  declare async post(message:any, transfers:any):Promise<unknown>
+  declare async post(message:any, transfers?:any):Promise<unknown>
 }
 
 

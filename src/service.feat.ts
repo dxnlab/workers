@@ -109,17 +109,18 @@ export function bindingMetaListeners(target:any, context:DecoratorContext) {
 
 
 export const resolver = (resolve:Function, reject:Function, ev:any)=>{
-  const { active, waiting, installing } = ev
-
+  const { active, waiting, installing } = ev;
+  const worker:any = active || waiting || installing;
   try {
+    // if the service worker activated, resolve the promise
     if(active) { resolve(active) }
-    else if((waiting || installing)) {
-      (waiting || installing).addEventListener('statechange',
-        (ev:any)=>resolver(resolve, reject, ev),
-        { once: true }
-      );
+    // elif handler function had not presented, add it
+    else if(worker) {
+      worker._resolver = worker._resolver || ((ev:any)=>resolver(resolver, reject, ev));
+      worker.addEventListener('statechange', worker._resolver, { once: true });
     }
-  } catch(ex) {
+  }
+  catch(ex) {
     reject(ex);
   }
 }

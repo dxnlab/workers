@@ -3,6 +3,7 @@
  */
 
 import { describe, test, expect, vi } from "vitest";
+// @ts-ignore
 import blankUrl from './blank?url';
 
 import { emit } from './base'
@@ -81,6 +82,7 @@ describe('worker common utilities test', async ()=>{
     paramComb.forEach(({title, params,failure})=>{
       Object.entries(emitter).forEach(([etype, expectSuccess])=>{
         test(`${title}: ${etype} => ${expectSuccess}`, async ()=>{
+          // @ts-ignore
           await testerForwardOnce(params, etype, !failure && expectSuccess);
         });
       });

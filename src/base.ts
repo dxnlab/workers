@@ -83,7 +83,7 @@ export function forwardOnce(sender:EventTarget=workerSelf, receiver?:EventTarget
 export function decoratorOn<R>(event:R)  {
   return function(listener:EventListener, context:DecoratorContext) {
     context.metadata!.listeners = ((context.metadata!.listeners || []) as Array<any>)
-      .concat([{ event, listener }]);
+      .concat([{ event:(event as string).toLowerCase(), listener }]);
   };
 }
 
@@ -141,7 +141,25 @@ export class WorkerGlobalScope extends EventTarget {
   protected fetch(input:URL|RequestInfo, init?:RequestInit) { return workerSelf.fetch(input, init) }
   // @ts-ignore @future
   protected importScripts(...urls:URL[]) { return workerSelf.importScripts(...urls) }
+  // simple forwarding sub worker importing
+  protected spawn(...urls:Array<string|URL>) { 
+    const locations = urls.map(locateUrl);
+    // @ts-ignore @future
+    return workerSelf.importScripts(...locations);
+  }
   protected queueMicrotask(callback:VoidFunction) { return workerSelf.queueMicrotask(callback) }
+  // simple forwarding queueMicrotask
+  protected queue(callback:()=>unknown) { 
+    const { promise, resolve, reject } = Promise.withResolvers();
+    workerSelf.queueMicrotask(()=>{
+      try {
+        resolve(callback());
+      } catch(ex) {
+        reject(ex);
+      }
+    })
+    return promise;
+  }
   protected reportError(err:any) { return workerSelf.reportError(err) }
   protected setInterval(handler:TimerHandler, timeout?:number, ...args:any[]) { return workerSelf.setInterval(handler, timeout, ...args) }
   protected setTimeout(handler:TimerHandler, timeout?:number, ...args:any[]) { return workerSelf.setTimeout(handler, timeout, ...args) }
