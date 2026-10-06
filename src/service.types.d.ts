@@ -1,23 +1,65 @@
+/**
+ * Service Worker types
+ */
+
+// [Common] get service worker container, either fore&back
+declare function getContainer(options?:GetContainerOption):ServiceWorkerContainer;
 
 // [Background][classic] create a service worker to be registered
 declare function createServiceWorker(handlers:ServiceWorkerOptions, scope?:EventTarget):EventTarget;
 
+// [Background][module][class] @serviceWorker class decorator
+declare function serviceWorker(cls:any, context:DecoratorContext):void;
 
+// [Background][module][method] @on method decorator
+declare function on(method:any, context:DecoratorContext):void;
+
+// [Background][module][method] Base class for ease
+declare class BaseScope extends WorkerGlobalScope  {
+  declare get clients():Clients;
+  declare get cookieStore():CookieStore;
+  declare get registration():ServiceWorkerRegistration;
+  declare get serviceWorker():ServiceWorker;
+  declare get controller():ServiceWorker;
+  
+  // skip waiting to be installed
+  declare skipWaiting():Promise<undefined>;
+  // postback to the foreground worker that has sent the message
+  declare postback(event:any, message:any, transfers?:any):void;
+  // broadcast to all foreground workers
+  declare broadcast(message:any, transfers?:any, matchOptions?:ServiceWorkerClientMatchOption):Promise<void>;
+  
+  declare get scriptURL():string;
+  declare get state():ServiceWorkerStatus;
+};
+
+/** featuring types */
+// [Common] ServiceWorker event listener type
 type ServiceWorkerListener<T extends ExtendableEvent> = (e:T)=>unknown;
 
+
+// [Background][module][method] ServiceWorkerClientMatchOption type
+export type ServiceWorkerClientMatchOption = {
+  includeUncontrolled: boolean; 
+  type: "window" | "worker" | "sharedworker" | "all";
+};
+
+
+
+// [Foreground] Registration options for the service worker
 export type ServiceWorkerOptions = {
   // global scoped events
-  onMessage?:SerivceWorkerListener<ExtendableMessageEvent>,
-  onMessageError?:SerivceWorkerListener<ExtendableMessageEvent>,
+  onMessage?:ServiceWorkerListener<ExtendableMessageEvent>,
+  onMessageError?:ServiceWorkerListener<ExtendableMessageEvent>,
   onActivate?:ServiceWorkerListener<ExtendableEvent>,
-  onCookieChange?:SerivceWorkerListener<ExtendableCookieChangeEvent>,
-  onFetch?:SerivceWorkerListener<FetchEvent>,
-  onPush?:SerivceWorkerListener<PushEvent>,
+  onCookieChange?:ServiceWorkerListener<ExtendableCookieChangeEvent>,
+  onFetch?:ServiceWorkerListener<FetchEvent>,
+  onPush?:ServiceWorkerListener<PushEvent>,
   onPushSubscriptionChange?:EventListener,
-  onSync?:SerivceWorkerListener<SyncEvent>,
-  onInstall?:SerivceWorkerListener<ExtendableEvent>,
-  onNotificationClick?:SerivceWorkerListener<NotificationEvent>,
-  onNotificationClose?:SerivceWorkerListener<NotificationEvent>,
+  onSync?:ServiceWorkerListener<SyncEvent>,
+  onInstall?:ServiceWorkerListener<ExtendableEvent>,
+  onNotificationClick?:ServiceWorkerListener<NotificationEvent>,
+  onNotificationClose?:ServiceWorkerListener<NotificationEvent>,
   
   // worker event
   onError:EventListener,
@@ -30,15 +72,11 @@ export type ServiceWorkerOptions = {
   onBackgroundFetchSuccess?:ServiceWorkerListener<BackgroundFetchEvent> ;
   onCanMakePayment?:ServiceWorkerListener<CanMakePaymentEvent>,
   onContentDelete?:ServiceWorkerListener<ContentIndexEvent>,
-  onPaymentRequest?:SerivceWorkerListener<PaymentRequestEvent>,
-  onPeriodicSync?:SerivceWorkerListener<PeriodicSyncEvent>,
+  onPaymentRequest?:ServiceWorkerListener<PaymentRequestEvent>,
+  onPeriodicSync?:ServiceWorkerListener<PeriodicSyncEvent>,
 
 };
 
-export type ServiceWorkerClientMatchOption = {
-  includeUncontrolled: boolean; 
-  type: "window" | "worker" | "sharedworker" | "all";
-};
 
 /**
  * @refer https://developer.mozilla.org/en-US/docs/Web/API/Clients
@@ -111,21 +149,6 @@ export type ServiceWorkerEvent = DedicatedWorkerEvent
   | 'paymentrequest'
   | 'periodicsync'
 ;
-
-declare class BaseScope extends WorkerGlobalScope  {
-  declare get clients():Clients;
-  declare get cookieStore():CookieStore;
-  declare get registration():ServiceWorkerRegistration;
-  declare get serviceWorker():ServiceWorker;
-  declare get controller():ServiceWorker;
-  
-  declare skipWaiting():Promise<undefined>;
-  declare postback(event:any, message:any, transfers?:any):void;
-  declare broadcast(message:any, transfers?:any, matchOptions?:ServiceWorkerClientMatchOption):Promise<void>;
-  
-  declare get scriptURL():string;
-  declare get state():ServiceWorkerStatus;
-};
 
 
 export type ServiceWorkerContainerEvent = 'controllerchange'

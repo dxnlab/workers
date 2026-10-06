@@ -6,7 +6,7 @@ export default defineConfig({
     lib: {
       entry: {
         index: 'src/index.ts',
-        worker: 'src/worker.ts',
+        dedicated: 'src/dedicated.ts',
         shared: 'src/shared.ts',
         service: 'src/service.ts',
       },

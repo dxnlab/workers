@@ -6,7 +6,7 @@ import {
   WorkerGlobalScope, 
   workerSelf,
 } from "./base";
-import { appendDefaultOnConnect, appendPortEventsOnConnect, assignPortsProperty, bindingMetaListeners, partitionEventHandlers, SharedWorkerPortEvent } from "./shared.feat";
+import { appendDefaultOnConnect, appendPortEventsOnConnect, assignPortsProperty, bindingMetaListeners, partitionEventHandlers } from "./shared.feat";
 import type { RegistrationOption, SharedWorkerEvent, SharedWorkerOptions } from "./shared.types";
 import type { HandlerEntry } from "./types";
 

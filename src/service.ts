@@ -61,7 +61,7 @@ export function getContainer(options?:GetContainerOption):ServiceWorkerContainer
 
 /**
  * @core classic mode shared worker declaration function
- * @param handlers { eventType: listnerFunction } object
+ * @param handlers { eventType: listenerFunction } object
  * @param scope background basescope
  * @returns Promise<ServiceWorker>
  */
@@ -214,8 +214,16 @@ export async function register(location:string|URL, options?:RegistrationOption,
   
   Object.defineProperty(worker, 'post', { value: forwardOnce(worker, container) });
 
-  registerEventHandler(worker, 'error', options);
-  registerEventHandler(worker, 'statechange', options);
+  // setup event handlers
+  [
+    'change',
+    'message',
+    'messageerror',
+    'error',
+    'statechange',
+  ].forEach((eventKey)=>{
+    registerEventHandler(worker, eventKey, options);
+  });
 
   return worker;
 }

@@ -22,7 +22,6 @@ You should be aware to consider `controller` and `container`/`client`:
   == controller (worker)
 
 
-
 ## Components
 
 ### Background; ServiceWorker scope

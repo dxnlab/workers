@@ -5,7 +5,7 @@
   "keywords": [
     "worker"
   ],
-  "version": "0.1.9",
+  "version": "0.2.0",
   "type": "module",
   "exports": {
     ".": {
@@ -19,11 +19,14 @@
     },
     "./shared": {
       "main": "./dist/shared.cjs",
-      "browser": "./dist/shared.js"
+      "browser": "./dist/shared.js",
+      "types": "./dist/shared.types.d.ts"
+
     },
     "./service": {
       "main": "./dist/service.cjs",
-      "browser": "./dist/service.js"
+      "browser": "./dist/service.js",
+      "types": "./dist/service.types.d.ts"
     }
   },
   "author": "yg.song <yg.song@dxnlab.com>",
