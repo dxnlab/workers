@@ -1,11 +1,11 @@
 {
   "name": "@dxnlab/workers",
   "description": "Just wanted to run workers",
-  "license": "MIT",
+  "license": "LGPL-3.0-or-later",
   "keywords": [
     "worker"
   ],
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "exports": {
     ".": {
